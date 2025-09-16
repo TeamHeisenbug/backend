@@ -20,10 +20,10 @@ type serverController struct {
 // @Produce		json
 // @Success		200		{object}	dto.Message
 // @Router			/health [get]
-func (d *databaseController) Health(ctx *gin.Context) {
+func (d *serverController) Health(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
 }
 
 func NewServerController() ServerController {
-	return &databaseController{}
+	return &serverController{}
 }
