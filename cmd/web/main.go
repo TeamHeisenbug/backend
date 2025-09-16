@@ -9,17 +9,37 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/swaggo/swag/example/basic/docs"
 	"google.golang.org/genai"
 )
 
 func main() {
-	r := gin.Default()
 	err := godotenv.Load()
 	if err != nil {
 		log.Println(".env NOT FOUND")
 	}
+
+	host := os.Getenv("HOST")
+	if host == "" {
+		host = "localhost"
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
+
+	r := gin.Default()
+	r.Use(cors.Default())
+
+	docs.SwaggerInfo.Title = "SIH API"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = host + ":" + port
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	docs.SwaggerInfo.Schemes = []string{"http"}
 
 	httpClient := http.Client{}
 
@@ -62,5 +82,5 @@ func main() {
 		ctx.JSON(http.StatusOK, resp)
 	})
 
-	r.Run(":8000")
+	r.Run(":" + port)
 }
