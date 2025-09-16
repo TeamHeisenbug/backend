@@ -28,7 +28,7 @@ func main() {
 		log.Println(".env NOT FOUND")
 	}
 
-	host := os.Getenv("HOST")
+	host := os.Getenv("RENDER_EXTERNAL_HOSTNAME")
 	if host == "" {
 		host = "localhost"
 	}
@@ -44,7 +44,11 @@ func main() {
 	docs.SwaggerInfo.Title = "NEXUS API"
 	docs.SwaggerInfo.Version = "1.0"
 	docs.SwaggerInfo.Description = "NEXUS (NAMASTE - ICD Exchange for Unified Standards) is a smart, FHIR R4 - compliant service. It connect India's NAMASTE codes for Ayurveda, Siddha and Unani with WHO's ICD-11"
-	docs.SwaggerInfo.Host = host + ":" + port
+	if os.Getenv("RENDER") != "" {
+		docs.SwaggerInfo.Host = host
+	} else {
+		docs.SwaggerInfo.Host = host + ":" + port
+	}
 	docs.SwaggerInfo.BasePath = "/api/v1"
 
 	httpClient := http.Client{}
@@ -85,11 +89,10 @@ func main() {
 
 		apiRoutes.GET("/sync", databaseController.Sync)
 		apiRoutes.GET("/autocomplete", autocompleteController.Find)
+		apiRoutes.GET("/health", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
+		})
 	}
-
-	r.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
-	})
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

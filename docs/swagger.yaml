@@ -67,6 +67,16 @@ paths:
           schema:
             $ref: '#/definitions/dto.Error'
       summary: Retrive matches
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Message'
+      summary: Check if server is alive
   /sync:
     get:
       description: Updates the database index with the NAMASTE CSV files' data

@@ -47,6 +47,22 @@ const docTemplate = `{
                 }
             }
         },
+        "/health": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Check if server is alive",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Message"
+                        }
+                    }
+                }
+            }
+        },
         "/sync": {
             "get": {
                 "description": "Updates the database index with the NAMASTE CSV files' data",
