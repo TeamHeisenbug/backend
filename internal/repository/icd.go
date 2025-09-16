@@ -13,6 +13,7 @@ import (
 
 type ICDRepository interface {
 	Find(input string) (*ICDMatches, error)
+	// List(size int) ([]ICDMatch, error)
 }
 
 type icdRepository struct {
@@ -28,6 +29,7 @@ type icdRepository struct {
 type ICDMatch struct {
 	ID   string
 	Name string
+	Desc string
 }
 
 type ICDMatches struct {
@@ -35,13 +37,13 @@ type ICDMatches struct {
 }
 
 func (i *icdRepository) Find(input string) (*ICDMatches, error) {
-	const searchURL = "https://id.who.int/icd/entity/search"
+	const searchURL = "https://id.who.int/icd/release/11/2025-01/mms/search"
 
 	if err := i.ensureToken(); err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", searchURL+"?q="+url.QueryEscape(input)+"&flatResults=true&highlightingEnabled=false", nil)
+	req, err := http.NewRequest("GET", searchURL+"?q="+url.QueryEscape(input)+"&subtreeFilterUsesFoundationDescendants=false&includeKeywordResult=false&useFlexisearch=false&flatResults=true&highlightingEnabled=false&medicalCodingMode=false", nil)
 	if err != nil {
 		return nil, err
 	}
