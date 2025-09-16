@@ -13,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/swaggo/swag/example/basic/docs"
+	"github.com/ulule/limiter/v3"
+	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
 	"google.golang.org/genai"
 )
 
@@ -57,29 +60,44 @@ func main() {
 	namasteRepository := repository.NewNamasteRepository()
 	autocompleteService := service.NewAutoComplete(genaiClient, icdRepository, namasteRepository)
 
+	// Rate limiter
+	rate, err := limiter.NewRateFromFormatted("10-M")
+	if err != nil {
+		log.Fatalln("Failed to create rate limiter: %w", err)
+	}
+
+	rateLimitStore := memory.NewStore()
+
+	rateLimiterMiddleware := mgin.NewMiddleware(limiter.New(rateLimitStore, rate))
+
+	apiRoutes := r.Group(docs.SwaggerInfo.BasePath)
+	apiRoutes.Use(rateLimiterMiddleware)
+	{
+
+		apiRoutes.GET("/sync", func(ctx *gin.Context) {
+			if err := autocompleteService.Update(); err != nil {
+				ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
+				return
+			}
+
+			ctx.JSON(http.StatusOK, dto.Message{Message: "All repositories synced"})
+		})
+
+		apiRoutes.GET("/autocomplete", func(ctx *gin.Context) {
+			query := ctx.Query("query")
+
+			resp, err := autocompleteService.Find(ctx.Request.Context(), query)
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
+				return
+			}
+
+			ctx.JSON(http.StatusOK, resp)
+		})
+	}
+
 	r.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
-	})
-
-	r.GET("/sync", func(ctx *gin.Context) {
-		if err := autocompleteService.Update(); err != nil {
-			ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
-			return
-		}
-
-		ctx.JSON(http.StatusOK, dto.Message{Message: "All repositories synced"})
-	})
-
-	r.GET("/autocomplete", func(ctx *gin.Context) {
-		query := ctx.Query("query")
-
-		resp, err := autocompleteService.Find(ctx.Request.Context(), query)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
-			return
-		}
-
-		ctx.JSON(http.StatusOK, resp)
 	})
 
 	r.Run(":" + port)
