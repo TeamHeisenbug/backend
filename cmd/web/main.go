@@ -1,7 +1,6 @@
 package main
 
 import (
-	"backend/cmd/web/dto"
 	"backend/cmd/web/dto/controller"
 	"backend/docs"
 	"backend/internal/repository"
@@ -68,10 +67,13 @@ func main() {
 
 	// Set up services
 	autocompleteService := service.NewAutoComplete(genaiClient, icdRepository, namasteRepository)
+	codeSystemService := service.NewCodeSystemService(namasteRepository, icdRepository)
 
 	// Set up controllers
 	autocompleteController := controller.NewAutocompleteController(autocompleteService)
 	databaseController := controller.NewDatabaseController(autocompleteService)
+	serverController := controller.NewServerController()
+	codeSystemController := controller.NewCodeSystemController(codeSystemService)
 
 	// Rate limiter
 	rate, err := limiter.NewRateFromFormatted("10-M")
@@ -86,12 +88,14 @@ func main() {
 	apiRoutes := r.Group(docs.SwaggerInfo.BasePath)
 	apiRoutes.Use(rateLimiterMiddleware)
 	{
+		codeSystemRoutes := apiRoutes.Group("/codesystem")
+		{
+			codeSystemRoutes.GET("/namaste", codeSystemController.ListNamaste)
+		}
 
 		apiRoutes.GET("/sync", databaseController.Sync)
 		apiRoutes.GET("/autocomplete", autocompleteController.Find)
-		apiRoutes.GET("/health", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
-		})
+		apiRoutes.GET("/health", serverController.Health)
 	}
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

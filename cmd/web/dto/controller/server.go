@@ -24,6 +24,6 @@ func (d *databaseController) Health(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
 }
 
-func NewServerController() DatabaseController {
+func NewServerController() ServerController {
 	return &databaseController{}
 }

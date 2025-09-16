@@ -10,7 +10,7 @@ import (
 	"github.com/blevesearch/bleve/search/query"
 )
 
-type namasteMatch struct {
+type NamasteMatch struct {
 	Type string
 	ID   string
 	Name string
@@ -18,18 +18,66 @@ type namasteMatch struct {
 }
 
 type NamasteMatches struct {
-	Diseases []namasteMatch
+	Diseases []NamasteMatch
+}
+
+type Record struct {
+	Type        string
+	ID          string
+	Code        string
+	Term        string
+	Diacritical string
+	Native      string
+	ShortDesc   string
+	LongDesc    string
 }
 
 type NamasteRepository interface {
 	CreateIndex(path string) error
 	Find(input string) (*NamasteMatches, error)
+	List(size int) ([]NamasteMatch, error)
 }
 
 type namasteRepository struct{}
 
 func NewNamasteRepository() NamasteRepository {
 	return &namasteRepository{}
+}
+
+func (n *namasteRepository) List(size int) ([]NamasteMatch, error) {
+	index, err := bleve.Open("index.bleve")
+	if err != nil {
+		return nil, fmt.Errorf("unable to open index: %w", err)
+	}
+	defer index.Close()
+
+	matchQuery := query.NewMatchAllQuery()
+
+	searchRequest := bleve.NewSearchRequest(matchQuery)
+	searchRequest.Size = size
+	searchRequest.Fields = []string{"Type", "Code", "Diacritical", "LongDesc"}
+
+	searchResult, err := index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("unable to search: %w", err)
+	}
+
+	matches := make([]NamasteMatch, 0, 5)
+	for _, hit := range searchResult.Hits {
+		typ := hit.Fields["Type"].(string)
+		code := hit.Fields["Code"].(string)
+		name := hit.Fields["Diacritical"].(string)
+		desc := hit.Fields["LongDesc"].(string)
+
+		matches = append(matches, NamasteMatch{
+			Type: typ,
+			ID:   code,
+			Name: name,
+			Desc: desc,
+		})
+	}
+
+	return matches, nil
 }
 
 // CreateIndex implements NamasteRepository.
@@ -67,16 +115,7 @@ func (n *namasteRepository) CreateIndex(path string) error {
 				continue
 			}
 
-			var record struct {
-				Type        string
-				ID          string
-				Code        string
-				Term        string
-				Diacritical string
-				Native      string
-				ShortDesc   string
-				LongDesc    string
-			}
+			var record Record
 
 			switch branch {
 			case "ayurveda":
@@ -145,14 +184,14 @@ func (n *namasteRepository) Find(input string) (*NamasteMatches, error) {
 		return nil, fmt.Errorf("unable to search: %w", err)
 	}
 
-	matches := make([]namasteMatch, 0, 5)
+	matches := make([]NamasteMatch, 0, 5)
 	for _, hit := range searchResult.Hits {
 		typ := hit.Fields["Type"].(string)
 		code := hit.Fields["Code"].(string)
 		name := hit.Fields["Diacritical"].(string)
 		desc := hit.Fields["LongDesc"].(string)
 
-		matches = append(matches, namasteMatch{
+		matches = append(matches, NamasteMatch{
 			Type: typ,
 			ID:   code,
 			Name: name,

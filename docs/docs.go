@@ -47,6 +47,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/codesystem/namaste": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Code System"
+                ],
+                "summary": "List all namaste codes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of codes you want",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CodeSystem"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "produces": [
@@ -88,6 +121,66 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.CodeSystem": {
+            "type": "object",
+            "properties": {
+                "concept": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Concept"
+                    }
+                },
+                "content": {
+                    "description": "Complete",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "NAMASTE",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "NAMASTE Codes",
+                    "type": "string"
+                },
+                "resourceType": {
+                    "description": "CodeSystem",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "active",
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Concept": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "code",
+                    "type": "string"
+                },
+                "definition": {
+                    "description": "longDesc",
+                    "type": "string"
+                },
+                "display": {
+                    "description": "Term",
+                    "type": "string"
+                },
+                "property": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Property"
+                    }
+                }
+            }
+        },
         "dto.Error": {
             "type": "object",
             "properties": {
@@ -100,6 +193,19 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Property": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "type",
+                    "type": "string"
+                },
+                "valueString": {
+                    "description": "ayurveda/siddha/unani",
                     "type": "string"
                 }
             }

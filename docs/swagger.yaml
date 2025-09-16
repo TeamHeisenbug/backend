@@ -1,4 +1,46 @@
 definitions:
+  dto.CodeSystem:
+    properties:
+      concept:
+        items:
+          $ref: '#/definitions/dto.Concept'
+        type: array
+      content:
+        description: Complete
+        type: string
+      id:
+        description: NAMASTE
+        type: string
+      name:
+        description: NAMASTE Codes
+        type: string
+      resourceType:
+        description: CodeSystem
+        type: string
+      status:
+        description: active
+        type: string
+      url:
+        type: string
+      version:
+        type: string
+    type: object
+  dto.Concept:
+    properties:
+      code:
+        description: code
+        type: string
+      definition:
+        description: longDesc
+        type: string
+      display:
+        description: Term
+        type: string
+      property:
+        items:
+          $ref: '#/definitions/dto.Property'
+        type: array
+    type: object
   dto.Error:
     properties:
       error:
@@ -7,6 +49,15 @@ definitions:
   dto.Message:
     properties:
       message:
+        type: string
+    type: object
+  dto.Property:
+    properties:
+      code:
+        description: type
+        type: string
+      valueString:
+        description: ayurveda/siddha/unani
         type: string
     type: object
   service.Disease:
@@ -67,6 +118,27 @@ paths:
           schema:
             $ref: '#/definitions/dto.Error'
       summary: Retrive matches
+  /codesystem/namaste:
+    get:
+      parameters:
+      - description: Number of codes you want
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CodeSystem'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Error'
+      summary: List all namaste codes
+      tags:
+      - Code System
   /health:
     get:
       produces:
