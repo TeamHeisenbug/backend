@@ -13,7 +13,7 @@ FROM gcr.io/distroless/base-debian12 AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/web .
+COPY --from=builder /app/ /app/
 
 EXPOSE 8000
 
