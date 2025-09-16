@@ -18,7 +18,7 @@ func main() {
 	r := gin.Default()
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(".env NOT FOUND")
 	}
 
 	httpClient := http.Client{}
