@@ -2,6 +2,8 @@ package main
 
 import (
 	"backend/cmd/web/dto"
+	"backend/cmd/web/dto/controller"
+	"backend/docs"
 	"backend/internal/repository"
 	"backend/internal/service"
 	"context"
@@ -12,7 +14,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/swaggo/swag/example/basic/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
@@ -38,11 +41,11 @@ func main() {
 	r := gin.Default()
 	r.Use(cors.Default())
 
-	docs.SwaggerInfo.Title = "SIH API"
+	docs.SwaggerInfo.Title = "NEXUS API"
 	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Description = "NEXUS (NAMASTE - ICD Exchange for Unified Standards) is a smart, FHIR R4 - compliant service. It connect India's NAMASTE codes for Ayurveda, Siddha and Unani with WHO's ICD-11"
 	docs.SwaggerInfo.Host = host + ":" + port
 	docs.SwaggerInfo.BasePath = "/api/v1"
-	docs.SwaggerInfo.Schemes = []string{"http"}
 
 	httpClient := http.Client{}
 
@@ -55,10 +58,16 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// Set up the dependencies
+	// Set up the repositories
 	icdRepository := repository.NewICDRepository(&httpClient, icdClientID, icdClientSecret)
 	namasteRepository := repository.NewNamasteRepository()
+
+	// Set up services
 	autocompleteService := service.NewAutoComplete(genaiClient, icdRepository, namasteRepository)
+
+	// Set up controllers
+	autocompleteController := controller.NewAutocompleteController(autocompleteService)
+	databaseController := controller.NewDatabaseController(autocompleteService)
 
 	// Rate limiter
 	rate, err := limiter.NewRateFromFormatted("10-M")
@@ -74,31 +83,15 @@ func main() {
 	apiRoutes.Use(rateLimiterMiddleware)
 	{
 
-		apiRoutes.GET("/sync", func(ctx *gin.Context) {
-			if err := autocompleteService.Update(); err != nil {
-				ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
-				return
-			}
-
-			ctx.JSON(http.StatusOK, dto.Message{Message: "All repositories synced"})
-		})
-
-		apiRoutes.GET("/autocomplete", func(ctx *gin.Context) {
-			query := ctx.Query("query")
-
-			resp, err := autocompleteService.Find(ctx.Request.Context(), query)
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, dto.Error{Error: err.Error()})
-				return
-			}
-
-			ctx.JSON(http.StatusOK, resp)
-		})
+		apiRoutes.GET("/sync", databaseController.Sync)
+		apiRoutes.GET("/autocomplete", autocompleteController.Find)
 	}
 
 	r.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, dto.Message{Message: "ok"})
 	})
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	r.Run(":" + port)
 }

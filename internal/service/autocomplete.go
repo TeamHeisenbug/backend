@@ -33,12 +33,12 @@ type Matches struct {
 	Diseases []Disease `json:"diseases"`
 }
 
-type AutoComplete interface {
+type AutoCompleteService interface {
 	Update() error
 	Find(ctx context.Context, input string) (*Matches, error)
 }
 
-type autoComplete struct {
+type autoCompleteService struct {
 	genaiClient       *genai.Client
 	icdRepository     repository.ICDRepository
 	namasteRepository repository.NamasteRepository
@@ -68,7 +68,7 @@ Return the final output strictly in the following JSON format only:
 `
 
 // Find implements AutoComplete.
-func (a *autoComplete) Find(ctx context.Context, input string) (*Matches, error) {
+func (a *autoCompleteService) Find(ctx context.Context, input string) (*Matches, error) {
 	icdMatches, err := a.icdRepository.Find(input)
 	if err != nil {
 		return nil, err
@@ -113,13 +113,13 @@ func (a *autoComplete) Find(ctx context.Context, input string) (*Matches, error)
 	return &matches, nil
 }
 
-func (a *autoComplete) Update() error {
+func (a *autoCompleteService) Update() error {
 	a.namasteRepository.CreateIndex("index.bleve")
 	return nil
 }
 
-func NewAutoComplete(genaiClient *genai.Client, icdRepository repository.ICDRepository, namasteRepository repository.NamasteRepository) AutoComplete {
-	return &autoComplete{
+func NewAutoComplete(genaiClient *genai.Client, icdRepository repository.ICDRepository, namasteRepository repository.NamasteRepository) AutoCompleteService {
+	return &autoCompleteService{
 		genaiClient:       genaiClient,
 		icdRepository:     icdRepository,
 		namasteRepository: namasteRepository,

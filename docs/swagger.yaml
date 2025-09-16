@@ -1,0 +1,85 @@
+definitions:
+  dto.Error:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.Message:
+    properties:
+      message:
+        type: string
+    type: object
+  service.Disease:
+    properties:
+      icd:
+        $ref: '#/definitions/service.ICD'
+      namaste:
+        $ref: '#/definitions/service.Namaste'
+    type: object
+  service.ICD:
+    properties:
+      desc:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  service.Matches:
+    properties:
+      diseases:
+        items:
+          $ref: '#/definitions/service.Disease'
+        type: array
+    type: object
+  service.Namaste:
+    properties:
+      desc:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /autocomplete:
+    get:
+      description: Retrieves matches by combining results from ICD and NAMASTE repositories
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/service.Matches'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Error'
+      summary: Retrive matches
+  /sync:
+    get:
+      description: Updates the database index with the NAMASTE CSV files' data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.Message'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Error'
+      summary: Syncs databases
+swagger: "2.0"
