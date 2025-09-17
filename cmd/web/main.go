@@ -9,7 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cache"
+	"github.com/gin-contrib/cache/persistence"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -81,20 +84,22 @@ func main() {
 		log.Fatalln("Failed to create rate limiter: %w", err)
 	}
 
+	// Setup middlewares
 	rateLimitStore := memory.NewStore()
-
 	rateLimiterMiddleware := mgin.NewMiddleware(limiter.New(rateLimitStore, rate))
+
+	cacheStore := persistence.NewInMemoryStore(time.Hour)
 
 	apiRoutes := r.Group(docs.SwaggerInfo.BasePath)
 	apiRoutes.Use(rateLimiterMiddleware)
 	{
 		codeSystemRoutes := apiRoutes.Group("/codesystem")
 		{
-			codeSystemRoutes.GET("/namaste", codeSystemController.ListNamaste)
+			codeSystemRoutes.GET("/namaste", cache.CachePage(cacheStore, time.Hour, codeSystemController.ListNamaste))
 		}
 
 		apiRoutes.GET("/sync", databaseController.Sync)
-		apiRoutes.GET("/autocomplete", autocompleteController.Find)
+		apiRoutes.GET("/autocomplete", cache.CachePage(cacheStore, time.Hour, autocompleteController.Find))
 		apiRoutes.GET("/health", serverController.Health)
 	}
 
