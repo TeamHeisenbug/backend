@@ -24,7 +24,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/service.Matches"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ValueSet"
+                            }
                         }
                     },
                     "500": {
@@ -170,10 +173,69 @@
                 }
             }
         },
+        "dto.Contain": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "code",
+                    "type": "string"
+                },
+                "display": {
+                    "description": "term",
+                    "type": "string"
+                },
+                "extension": {
+                    "$ref": "#/definitions/dto.Extension"
+                },
+                "system": {
+                    "description": "link to namaste/icd code system page",
+                    "type": "string"
+                }
+            }
+        },
         "dto.Error": {
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Expansion": {
+            "type": "object",
+            "properties": {
+                "contains": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Contain"
+                    }
+                },
+                "identifier": {
+                    "description": "link to autocomplete endpoint",
+                    "type": "string"
+                },
+                "offset": {
+                    "description": "0",
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "total": {
+                    "description": "2",
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.Extension": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "description": "link to structure defintion",
+                    "type": "string"
+                },
+                "valueString": {
+                    "description": "NAMASTE/ICD",
                     "type": "string"
                 }
             }
@@ -199,55 +261,22 @@
                 }
             }
         },
-        "service.Disease": {
+        "dto.ValueSet": {
             "type": "object",
             "properties": {
-                "icd": {
-                    "$ref": "#/definitions/service.ICD"
-                },
-                "namaste": {
-                    "$ref": "#/definitions/service.Namaste"
-                }
-            }
-        },
-        "service.ICD": {
-            "type": "object",
-            "properties": {
-                "desc": {
-                    "type": "string"
+                "expansion": {
+                    "$ref": "#/definitions/dto.Expansion"
                 },
                 "id": {
+                    "description": "autocomplete-results",
                     "type": "string"
                 },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "service.Matches": {
-            "type": "object",
-            "properties": {
-                "diseases": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/service.Disease"
-                    }
-                }
-            }
-        },
-        "service.Namaste": {
-            "type": "object",
-            "properties": {
-                "desc": {
+                "resourceType": {
+                    "description": "ValueSet",
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
+                "status": {
+                    "description": "active",
                     "type": "string"
                 }
             }

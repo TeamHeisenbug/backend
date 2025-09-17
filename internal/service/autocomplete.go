@@ -60,7 +60,6 @@ Return the final output strictly in the following JSON format only:
         "type": "string",
         "id": "string",
         "name": "string",
-        "desc": "string"
       }
     }
   ]

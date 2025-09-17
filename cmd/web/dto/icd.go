@@ -6,9 +6,16 @@ type TokenResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
+type MatchingPV struct {
+	PropertyID string `json:"propertyId"`
+	Label      string `json:"label"`
+}
+
 type DestinationEntity struct {
-	Title   string `json:"title"`
-	TheCode string `json:"theCode"`
+	ID          string       `json:"id"`
+	Title       string       `json:"title"`
+	TheCode     string       `json:"theCode"`
+	MatchingPVs []MatchingPV `json:"matchingPVs"`
 }
 
 type SearchResponse struct {

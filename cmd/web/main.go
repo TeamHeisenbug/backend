@@ -95,11 +95,17 @@ func main() {
 	{
 		codeSystemRoutes := apiRoutes.Group("/codesystem")
 		{
-			codeSystemRoutes.GET("/namaste", cache.CachePage(cacheStore, time.Hour, codeSystemController.ListNamaste))
+			codeSystemRoutes.GET("/namaste", func(c *gin.Context) {
+				c.Header("Content-Type", "application/json; charset=utf-8")
+				cache.CachePageWithoutHeader(cacheStore, time.Hour, codeSystemController.ListNamaste)(c)
+			})
 		}
 
 		apiRoutes.GET("/sync", databaseController.Sync)
-		apiRoutes.GET("/autocomplete", cache.CachePage(cacheStore, time.Hour, autocompleteController.Find))
+		apiRoutes.GET("/autocomplete", func(c *gin.Context) {
+			c.Header("Content-Type", "application/json; charset=utf-8")
+			cache.CachePageWithoutHeader(cacheStore, time.Hour, autocompleteController.Find)(c)
+		})
 		apiRoutes.GET("/health", serverController.Health)
 	}
 

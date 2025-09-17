@@ -41,9 +41,50 @@ definitions:
           $ref: '#/definitions/dto.Property'
         type: array
     type: object
+  dto.Contain:
+    properties:
+      code:
+        description: code
+        type: string
+      display:
+        description: term
+        type: string
+      extension:
+        $ref: '#/definitions/dto.Extension'
+      system:
+        description: link to namaste/icd code system page
+        type: string
+    type: object
   dto.Error:
     properties:
       error:
+        type: string
+    type: object
+  dto.Expansion:
+    properties:
+      contains:
+        items:
+          $ref: '#/definitions/dto.Contain'
+        type: array
+      identifier:
+        description: link to autocomplete endpoint
+        type: string
+      offset:
+        description: "0"
+        type: integer
+      timestamp:
+        type: string
+      total:
+        description: "2"
+        type: integer
+    type: object
+  dto.Extension:
+    properties:
+      url:
+        description: link to structure defintion
+        type: string
+      valueString:
+        description: NAMASTE/ICD
         type: string
     type: object
   dto.Message:
@@ -60,38 +101,18 @@ definitions:
         description: ayurveda/siddha/unani
         type: string
     type: object
-  service.Disease:
+  dto.ValueSet:
     properties:
-      icd:
-        $ref: '#/definitions/service.ICD'
-      namaste:
-        $ref: '#/definitions/service.Namaste'
-    type: object
-  service.ICD:
-    properties:
-      desc:
-        type: string
+      expansion:
+        $ref: '#/definitions/dto.Expansion'
       id:
+        description: autocomplete-results
         type: string
-      name:
+      resourceType:
+        description: ValueSet
         type: string
-    type: object
-  service.Matches:
-    properties:
-      diseases:
-        items:
-          $ref: '#/definitions/service.Disease'
-        type: array
-    type: object
-  service.Namaste:
-    properties:
-      desc:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      type:
+      status:
+        description: active
         type: string
     type: object
 info:
@@ -112,7 +133,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/service.Matches'
+            items:
+              $ref: '#/definitions/dto.ValueSet'
+            type: array
         "500":
           description: Internal Server Error
           schema:
