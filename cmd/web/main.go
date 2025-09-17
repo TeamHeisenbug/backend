@@ -79,7 +79,7 @@ func main() {
 	codeSystemController := controller.NewCodeSystemController(codeSystemService)
 
 	// Rate limiter
-	rate, err := limiter.NewRateFromFormatted("10-M")
+	rate, err := limiter.NewRateFromFormatted("20-M")
 	if err != nil {
 		log.Fatalln("Failed to create rate limiter: %w", err)
 	}
