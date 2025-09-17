@@ -4,6 +4,7 @@ import (
 	"backend/cmd/web/dto"
 	"backend/internal/service"
 	"net/http"
+	"strings"
 	"time"
 
 	_ "backend/internal/service"
@@ -28,6 +29,7 @@ type autocompleteController struct {
 // @Router			/autocomplete [get]
 func (a *autocompleteController) Find(ctx *gin.Context) {
 	query := ctx.Query("query")
+	query = strings.ToLower(query)
 
 	resp, err := a.service.Find(ctx.Request.Context(), query)
 	if err != nil {
