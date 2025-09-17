@@ -7,7 +7,7 @@ import (
 
 type CodeSystemService interface {
 	ListNamaste(size int, url string) (*dto.CodeSystem, error)
-	ListICD() (*dto.CodeSystem, error)
+	ListICD(size int, url string) (*dto.CodeSystem, error)
 }
 
 type codeSystemService struct {
@@ -16,8 +16,38 @@ type codeSystemService struct {
 }
 
 // ListICD implements CodeSystemService.
-func (c *codeSystemService) ListICD() (*dto.CodeSystem, error) {
-	panic("unimplemented")
+func (c *codeSystemService) ListICD(size int, url string) (*dto.CodeSystem, error) {
+	list, err := c.icdRepository.List(size)
+	if err != nil {
+		return nil, err
+	}
+
+	var result dto.CodeSystem
+
+	result.ResourceType = "CodeSystem"
+	result.Version = "1.0"
+	result.Status = "active"
+	result.Content = "complete"
+	result.ID = "ICD"
+	result.Name = "ICD Codes"
+	result.URL = url
+	result.Concept = make([]dto.Concept, 0)
+
+	for _, match := range list {
+		result.Concept = append(result.Concept, dto.Concept{
+			Code:       match.ID,
+			Display:    match.Name,
+			Definition: match.Desc,
+			Property: []dto.Property{
+				{
+					Code:        "type",
+					ValueString: "ICD",
+				},
+			},
+		})
+	}
+
+	return &result, nil
 }
 
 // ListNamaste implements CodeSystemService.

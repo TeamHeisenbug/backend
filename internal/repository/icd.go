@@ -9,13 +9,14 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 )
 
 type ICDRepository interface {
 	Find(input string) (*ICDMatches, error)
-	// List(size int) ([]ICDMatch, error)
+	List(size int) ([]ICDMatch, error)
 }
 
 type icdRepository struct {
@@ -90,87 +91,130 @@ func (i *icdRepository) fetchDescription(id string, ch chan string) {
 	ch <- descriptionResponse.Definition.Value
 }
 
-// func (i *icdRepository) List(size int) ([]ICDMatch, error) {
-// 	const searchURL = "https://id.who.int/icd/release/11/2025-01/mms/search"
-//
-// 	if err := i.ensureToken(); err != nil {
-// 		return nil, err
-// 	}
-//
-// 	req, err := http.NewRequest("GET", searchURL+"?q="+url.QueryEscape(input)+"&subtreeFilterUsesFoundationDescendants=false&includeKeywordResult=false&useFlexisearch=false&flatResults=true&highlightingEnabled=false&medicalCodingMode=false&propertiesToBeSearched=Title%2CFullySpecifiedName%2CDefinition%2CIndexTerm", nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	req.Header.Set("Authorization", "Bearer "+i.accessToken)
-// 	req.Header.Set("Accept", "application/json")
-// 	req.Header.Set("API-Version", "v2")
-// 	req.Header.Set("Accept-Language", "en")
-//
-// 	resp, err := i.client.Do(req)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer resp.Body.Close()
-//
-// 	if resp.StatusCode != http.StatusOK {
-// 		return nil, fmt.Errorf("bad status: %s", resp.Status)
-// 	}
-//
-// 	body, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("read body failed: %w", err)
-// 	}
-//
-// 	var response dto.SearchResponse
-//
-// 	if err := json.Unmarshal(body, &response); err != nil {
-// 		return nil, fmt.Errorf("unmarshal failed: %w", err)
-// 	}
-//
-// 	matches := make([]ICDMatch, 0, 5)
-// 	channels := make(map[int]chan string)
-//
-// 	for idx, entity := range response.DestinationEntities {
-// 		if idx == 5 {
-// 			break
-// 		}
-//
-// 		var definition string
-// 		for _, pv := range entity.MatchingPVs {
-// 			if pv.PropertyID == "Definition" {
-// 				definition = pv.Label
-// 				break
-// 			}
-// 		}
-//
-// 		if definition == "" {
-// 			ch := make(chan string)
-// 			channels[idx] = ch
-// 			parsedURL, err := url.Parse(entity.ID)
-// 			if err != nil {
-// 				log.Fatalln("Invalid id: %w", err)
-// 			}
-// 			id := path.Base(parsedURL.Path)
-//
-// 			log.Printf("Fetching description for code (%s) id: %s\n", entity.TheCode, entity.ID)
-// 			go i.fetchDescription(id, ch)
-// 		}
-//
-// 		matches = append(matches, ICDMatch{
-// 			ID:   entity.TheCode,
-// 			Name: entity.Title,
-// 		})
-// 	}
-//
-// 	for idx, ch := range channels {
-// 		matches[idx].Desc = <-ch
-// 	}
-//
-// 	return &ICDMatches{
-// 		Matches: matches,
-// 	}, nil
-// 	return nil, nil
-// }
+func (i *icdRepository) List(size int) ([]ICDMatch, error) {
+	const searchURL = "https://id.who.int/icd/release/11/2025-01/mms/search"
+	const numWorkers = 2 // Control the number of parallel requests
+
+	if err := i.ensureToken(); err != nil {
+		return nil, err
+	}
+
+	var allMatches []ICDMatch
+	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	// Channels for managing the parallel search
+	letters := make(chan string, len(alphabet))
+	results := make(chan []ICDMatch, len(alphabet))
+	errs := make(chan error, len(alphabet))
+
+	// Start the worker goroutines
+	for range numWorkers {
+		go func() {
+			for char := range letters {
+				// Each worker handles one letter at a time
+				matches, err := i.fetchMatchesForLetter(searchURL, char, size)
+				if err != nil {
+					errs <- err
+					continue
+				}
+				results <- matches
+			}
+		}()
+	}
+
+	// Send letters to the workers
+	for _, char := range alphabet {
+		letters <- string(char)
+	}
+	close(letters) // No more letters will be sent
+
+	// Collect results from the workers
+	for range alphabet {
+		select {
+		case res := <-results:
+			allMatches = append(allMatches, res...)
+			// If we have enough results, we can stop
+			if len(allMatches) >= size {
+				return allMatches[:size], nil
+			}
+		case err := <-errs:
+			// Handle the first error and return
+			return nil, err
+		}
+	}
+
+	return allMatches, nil
+}
+
+// fetchMatchesForLetter is a helper function to perform the actual API call for a single letter
+func (i *icdRepository) fetchMatchesForLetter(searchURL, char string, size int) ([]ICDMatch, error) {
+	needed := size // We don't know exactly how many we need, so we ask for the full size
+
+	req, err := http.NewRequest("GET", searchURL+"?q="+url.QueryEscape(char)+"&maxList="+strconv.Itoa(needed)+"&flatResults=true&highlightingEnabled=false", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+i.accessToken)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("API-Version", "v2")
+	req.Header.Set("Accept-Language", "en")
+
+	resp, err := i.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status for search with '%s': %s", char, resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body failed: %w", err)
+	}
+
+	var response dto.SearchResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("unmarshal failed: %w", err)
+	}
+
+	var matches []ICDMatch
+	channels := make(map[int]chan string)
+	for idx, entity := range response.DestinationEntities {
+
+		var definition string
+		for _, pv := range entity.MatchingPVs {
+			if pv.PropertyID == "Definition" {
+				definition = pv.Label
+				break
+			}
+		}
+
+		if definition == "" {
+			ch := make(chan string)
+			channels[idx] = ch
+			parsedURL, err := url.Parse(entity.ID)
+			if err != nil {
+				log.Fatalln("Invalid id: %w", err)
+			}
+			id := path.Base(parsedURL.Path)
+
+			log.Printf("Fetching description for code (%s) id: %s\n", entity.TheCode, entity.ID)
+			go i.fetchDescription(id, ch)
+		}
+		matches = append(matches, ICDMatch{
+			ID:   entity.TheCode,
+			Name: entity.Title,
+		})
+	}
+
+	for idx, ch := range channels {
+		matches[idx].Desc = <-ch
+	}
+
+	return matches, nil
+}
 
 func (i *icdRepository) Find(input string) (*ICDMatches, error) {
 	const searchURL = "https://id.who.int/icd/release/11/2025-01/mms/search"

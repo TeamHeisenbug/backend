@@ -99,6 +99,10 @@ func main() {
 				c.Header("Content-Type", "application/json; charset=utf-8")
 				cache.CachePageWithoutHeader(cacheStore, time.Hour, codeSystemController.ListNamaste)(c)
 			})
+			codeSystemRoutes.GET("/icd", func(c *gin.Context) {
+				c.Header("Content-Type", "application/json; charset=utf-8")
+				cache.CachePageWithoutHeader(cacheStore, time.Hour, codeSystemController.ListICD)(c)
+			})
 		}
 
 		apiRoutes.GET("/sync", databaseController.Sync)

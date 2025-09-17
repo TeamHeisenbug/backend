@@ -141,6 +141,27 @@ paths:
           schema:
             $ref: '#/definitions/dto.Error'
       summary: Retrive matches
+  /codesystem/icd:
+    get:
+      parameters:
+      - description: Number of codes you want
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CodeSystem'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.Error'
+      summary: List all ICD codes
+      tags:
+      - Code System
   /codesystem/namaste:
     get:
       parameters:

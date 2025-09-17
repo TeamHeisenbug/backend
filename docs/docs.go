@@ -50,6 +50,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/codesystem/icd": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Code System"
+                ],
+                "summary": "List all ICD codes",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of codes you want",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CodeSystem"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/codesystem/namaste": {
             "get": {
                 "produces": [
